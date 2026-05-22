@@ -1,8 +1,27 @@
 # GifFolders for Vencord / Vesktop
 
-GifFolders is a local Vencord userplugin that adds folders to the native Discord GIF favorites picker.
+GifFolders is a local Vencord userplugin that adds folder management to the native Discord GIF favorites picker.
 
-The plugin UI supports French and English. It uses French when Discord/browser locale starts with `fr`; otherwise it uses English.
+It lets you organize favorite GIFs into local folders, filter favorites by folder, and export/import your folder configuration after reinstalling Vencord or Vesktop.
+
+The plugin UI is available in English and French. It uses French when the Discord/browser locale starts with `fr`; otherwise it uses English.
+
+## Table of Contents
+
+- [Screenshots](#screenshots)
+- [Features](#features)
+- [Important Notes](#important-notes)
+- [Repository Structure](#repository-structure)
+- [Prerequisites](#prerequisites)
+- [Quick Install](#quick-install)
+- [Manual Install](#manual-install)
+- [Build for Vesktop](#build-for-vesktop)
+- [Build for Discord Desktop](#build-for-discord-desktop)
+- [Usage](#usage)
+- [Backup and Restore](#backup-and-restore)
+- [Troubleshooting](#troubleshooting)
+- [Francais](#francais)
+- [Official References](#official-references)
 
 ## Screenshots
 
@@ -10,129 +29,54 @@ The plugin UI supports French and English. It uses French when Discord/browser l
 
 ![GifFolders folder manager](assets/gif-folders-manager.png)
 
-## Francais
+## Features
 
-### A savoir avant de partager
+- Adds folder filters directly inside the GIF favorites picker.
+- Adds a manager modal to create, rename, delete, and select folders.
+- Lets one GIF belong to multiple folders.
+- Keeps an `All` view and an `Unsorted` view.
+- Adds search inside favorite GIFs.
+- Exports and imports folders and assignments as JSON.
+- Stores data locally through Vencord `DataStore`.
+- Supports English and French UI text.
 
-Vencord ne permet pas d'installer un userplugin prive avec un simple bouton dans la version officielle. D'apres la documentation Vencord, les plugins custom doivent etre places dans `src/userplugins`, puis Vencord doit etre recompile depuis les sources.
+## Important Notes
 
-Pour le partager proprement, publie ce depot sur GitHub ou en ZIP avec ces fichiers :
+Vencord does not support one-click installation for private custom userplugins in the official build.
 
-- `assets/`
-- `gifFolders/`
-- `install-userplugin.sh`
-- `install-userplugin.ps1`
-- `README.md`
+Custom plugins must be placed in `src/userplugins`, then Vencord must be rebuilt from source. This is required for both Discord Desktop with injected Vencord and Vesktop with a custom Vencord location.
 
-Avant publication, tu peux aussi remplacer l'auteur dans `gifFolders/index.tsx` :
+GifFolders does not modify Discord/Tenor favorites. It only stores folder metadata and GIF-to-folder assignments locally.
 
-```ts
-authors: [{ name: "TonNom", id: 123456789012345678n }],
+## Repository Structure
+
+Publish this structure on GitHub:
+
+```txt
+gif-folders-vencord/
+|-- .gitignore
+|-- README.md
+|-- install-userplugin.ps1
+|-- install-userplugin.sh
+|-- assets/
+|   |-- gif-folders-picker.png
+|   `-- gif-folders-manager.png
+`-- gifFolders/
+    |-- README.md
+    |-- index.tsx
+    `-- styles.css
 ```
 
-### Prerequis
+Do not publish local Vencord builds, backups, or private config folders such as `dist/`, `node_modules/`, `stable-backups/`, or `.config/vesktop/`.
 
-L'utilisateur doit avoir Git, Node.js et pnpm, puis un dossier source Vencord fonctionnel.
+## Prerequisites
 
-Installation de Vencord depuis zero :
+Install:
 
-```bash
-git clone https://github.com/Vendicated/Vencord
-cd Vencord
-pnpm install --frozen-lockfile
-```
-
-### Installation rapide du plugin
-
-Telecharge ou clone ce depot, puis lance la commande adaptee depuis le dossier `vencord-gif-pluggin`.
-
-Windows PowerShell :
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\install-userplugin.ps1 -VencordPath "$env:USERPROFILE\Documents\Vencord"
-```
-
-Linux :
-
-```bash
-chmod +x ./install-userplugin.sh
-./install-userplugin.sh "$HOME/Documents/Vencord"
-```
-
-Installation manuelle :
-
-1. Cree `src/userplugins` dans le dossier source Vencord si besoin.
-2. Copie le dossier `gifFolders` vers `src/userplugins/gifFolders`.
-3. Verifie que le fichier d'entree est bien `src/userplugins/gifFolders/index.tsx`.
-
-### Build pour Discord Desktop avec Vencord injecte
-
-Depuis le dossier source Vencord :
-
-```bash
-pnpm build --dev
-pnpm inject
-```
-
-Redemarre Discord, puis active `GifFolders` dans les plugins Vencord.
-
-### Build pour Vesktop
-
-Depuis le dossier source Vencord :
-
-```bash
-pnpm build --dev
-```
-
-Ensuite dans Vesktop :
-
-1. Ouvre `Vesktop Settings`.
-2. Va dans `Vencord Location`.
-3. Clique `Change`.
-4. Selectionne le dossier `dist` de ton dossier source Vencord.
-5. Redemarre completement Vesktop.
-6. Active `GifFolders` dans les plugins Vencord.
-
-Sur Linux avec Vesktop Flatpak, donne l'acces au dossier Vencord si le chemin devient temporaire :
-
-```bash
-flatpak override dev.vencord.Vesktop --filesystem="$HOME/Documents/Vencord"
-```
-
-### Utilisation
-
-- Ouvre le picker GIF, puis l'onglet favoris.
-- Cree des dossiers avec `Classer`.
-- Filtre avec `Tous`, `Non ranges` ou un dossier.
-- Coche les dossiers sur chaque GIF pour le ranger.
-- Utilise `Exporter` pour sauvegarder la configuration en JSON.
-- Utilise `Importer` apres une reinstallation pour restaurer les dossiers.
-
-Le plugin ne modifie pas les favoris Discord/Tenor. Il stocke seulement les dossiers et affectations localement via le `DataStore` de Vencord.
-
-## English
-
-### Before Sharing
-
-Vencord does not install private userplugins with a one-click button in the official build. According to the Vencord documentation, custom plugins must be placed in `src/userplugins`, then Vencord must be rebuilt from source.
-
-To share this plugin cleanly, publish this repository on GitHub or as a ZIP containing:
-
-- `assets/`
-- `gifFolders/`
-- `install-userplugin.sh`
-- `install-userplugin.ps1`
-- `README.md`
-
-Before publishing, you can also replace the author in `gifFolders/index.tsx`:
-
-```ts
-authors: [{ name: "YourName", id: 123456789012345678n }],
-```
-
-### Prerequisites
-
-Users need Git, Node.js, pnpm, and a working Vencord source folder.
+- Git
+- Node.js
+- pnpm
+- Vencord source code
 
 Fresh Vencord source install:
 
@@ -142,9 +86,15 @@ cd Vencord
 pnpm install --frozen-lockfile
 ```
 
-### Quick Plugin Install
+If `pnpm` is not directly available but Node.js includes Corepack, use:
 
-Download or clone this repository, then run the matching command from the `vencord-gif-pluggin` folder.
+```bash
+corepack pnpm install --frozen-lockfile
+```
+
+## Quick Install
+
+Download or clone this repository, then run the matching command from the repository folder.
 
 Windows PowerShell:
 
@@ -159,29 +109,43 @@ chmod +x ./install-userplugin.sh
 ./install-userplugin.sh "$HOME/Documents/Vencord"
 ```
 
-Manual install:
+The scripts copy `gifFolders/` to:
 
-1. Create `src/userplugins` inside the Vencord source folder if needed.
-2. Copy `gifFolders` to `src/userplugins/gifFolders`.
-3. Make sure the entry file is `src/userplugins/gifFolders/index.tsx`.
-
-### Build for Discord Desktop with injected Vencord
-
-From the Vencord source folder:
-
-```bash
-pnpm build --dev
-pnpm inject
+```txt
+Vencord/src/userplugins/gifFolders
 ```
 
-Restart Discord, then enable `GifFolders` in Vencord plugins.
+They do not build Vencord automatically. Build steps are below.
 
-### Build for Vesktop
+## Manual Install
 
-From the Vencord source folder:
+1. Open your Vencord source folder.
+2. Create `src/userplugins` if it does not exist.
+3. Copy `gifFolders` from this repository to `src/userplugins/gifFolders`.
+4. Make sure this file exists:
+
+```txt
+src/userplugins/gifFolders/index.tsx
+```
+
+Avoid nested paths like:
+
+```txt
+src/userplugins/gifFolders/gifFolders/index.tsx
+```
+
+## Build for Vesktop
+
+From your Vencord source folder:
 
 ```bash
 pnpm build --dev
+```
+
+If needed:
+
+```bash
+corepack pnpm build --dev
 ```
 
 Then in Vesktop:
@@ -189,26 +153,223 @@ Then in Vesktop:
 1. Open `Vesktop Settings`.
 2. Go to `Vencord Location`.
 3. Press `Change`.
-4. Select the `dist` folder in your Vencord source folder.
-5. Fully restart Vesktop.
+4. Select the `dist` folder inside your Vencord source folder.
+5. Fully close and restart Vesktop.
 6. Enable `GifFolders` in Vencord plugins.
 
-On Linux with Vesktop Flatpak, grant access to the Vencord folder if the path becomes temporary:
+Linux Flatpak note:
 
 ```bash
 flatpak override dev.vencord.Vesktop --filesystem="$HOME/Documents/Vencord"
 ```
 
-### Usage
+Use this if Vesktop turns the selected folder into a temporary `/run/...` path after restart.
 
-- Open the GIF picker, then the favorites tab.
-- Create folders with `Organize`.
-- Filter with `All`, `Unsorted`, or a folder.
-- Check folders on each GIF to assign it.
-- Use `Export` to save the configuration as JSON.
-- Use `Import` after reinstalling to restore folders.
+## Build for Discord Desktop
 
-The plugin does not change Discord/Tenor favorites. It only stores folders and assignments locally through Vencord `DataStore`.
+From your Vencord source folder:
+
+```bash
+pnpm build --dev
+pnpm inject
+```
+
+If needed:
+
+```bash
+corepack pnpm build --dev
+corepack pnpm inject
+```
+
+Restart Discord, then enable `GifFolders` in Vencord plugins.
+
+## Usage
+
+1. Open the Discord GIF picker.
+2. Open the favorites tab.
+3. Click `Organize`.
+4. Create folders.
+5. Assign GIFs to one or more folders.
+6. Use `All`, `Unsorted`, or a folder chip to filter favorites.
+7. Use search to find a specific favorite.
+
+## Backup and Restore
+
+Use `Export` in the GifFolders manager to download a JSON backup.
+
+Use `Import` after reinstalling Vencord, Vesktop, or the plugin to restore folders and assignments.
+
+The exported JSON stores only GifFolders data. It does not contain Discord account tokens or Discord/Tenor favorite data.
+
+## Troubleshooting
+
+`GifFolders` does not appear in Vencord plugins:
+
+- Check that the plugin is at `src/userplugins/gifFolders/index.tsx`.
+- Rebuild Vencord after copying the plugin.
+- Restart Vesktop or Discord completely.
+- Make sure Vesktop points to your Vencord `dist` folder.
+
+Build command cannot find `pnpm`:
+
+- Try `corepack pnpm build --dev`.
+- Make sure Node.js and Corepack are installed.
+
+Vesktop Flatpak forgets the Vencord folder:
+
+- Grant file access with the Flatpak override shown in the Vesktop section.
+
+## Francais
+
+GifFolders est un userplugin local pour Vencord/Vesktop. Il ajoute une gestion par dossiers aux GIF favoris natifs de Discord.
+
+L'interface du plugin est disponible en anglais et en francais. Elle passe en francais quand la langue Discord/navigateur commence par `fr`; sinon elle reste en anglais.
+
+### Sommaire
+
+- [Captures](#screenshots)
+- [Fonctionnalites](#fonctionnalites)
+- [Notes importantes](#notes-importantes)
+- [Structure du depot](#structure-du-depot)
+- [Prerequis](#prerequis)
+- [Installation rapide](#installation-rapide)
+- [Installation manuelle](#installation-manuelle)
+- [Build pour Vesktop](#build-pour-vesktop)
+- [Build pour Discord Desktop](#build-pour-discord-desktop)
+- [Utilisation](#utilisation)
+- [Sauvegarde et restauration](#sauvegarde-et-restauration)
+- [Depannage](#depannage)
+
+### Fonctionnalites
+
+- Ajoute des filtres par dossier dans le picker GIF.
+- Ajoute une modale pour creer, renommer, supprimer et selectionner les dossiers.
+- Permet de ranger un GIF dans plusieurs dossiers.
+- Garde les vues `Tous` et `Non ranges`.
+- Ajoute une recherche dans les GIF favoris.
+- Exporte et importe la configuration en JSON.
+- Stocke les donnees localement via le `DataStore` de Vencord.
+
+### Notes importantes
+
+Vencord ne permet pas d'installer un userplugin prive avec un simple bouton dans la version officielle.
+
+Le plugin doit etre copie dans `src/userplugins`, puis Vencord doit etre recompile depuis les sources. C'est obligatoire pour Vesktop comme pour Discord Desktop avec Vencord injecte.
+
+GifFolders ne modifie pas les favoris Discord/Tenor. Il stocke seulement les dossiers et affectations localement.
+
+### Structure du depot
+
+Publie cette arborescence sur GitHub :
+
+```txt
+gif-folders-vencord/
+|-- .gitignore
+|-- README.md
+|-- install-userplugin.ps1
+|-- install-userplugin.sh
+|-- assets/
+|   |-- gif-folders-picker.png
+|   `-- gif-folders-manager.png
+`-- gifFolders/
+    |-- README.md
+    |-- index.tsx
+    `-- styles.css
+```
+
+Ne publie pas `dist/`, `node_modules/`, `stable-backups/`, `.config/vesktop/`, ni ton dossier source Vencord complet.
+
+### Prerequis
+
+Installe Git, Node.js, pnpm et le code source Vencord.
+
+Installation Vencord depuis zero :
+
+```bash
+git clone https://github.com/Vendicated/Vencord
+cd Vencord
+pnpm install --frozen-lockfile
+```
+
+Si `pnpm` n'est pas disponible directement :
+
+```bash
+corepack pnpm install --frozen-lockfile
+```
+
+### Installation rapide
+
+Windows PowerShell :
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\install-userplugin.ps1 -VencordPath "$env:USERPROFILE\Documents\Vencord"
+```
+
+Linux :
+
+```bash
+chmod +x ./install-userplugin.sh
+./install-userplugin.sh "$HOME/Documents/Vencord"
+```
+
+### Installation manuelle
+
+1. Ouvre ton dossier source Vencord.
+2. Cree `src/userplugins` si besoin.
+3. Copie `gifFolders` vers `src/userplugins/gifFolders`.
+4. Verifie que `src/userplugins/gifFolders/index.tsx` existe.
+
+### Build pour Vesktop
+
+Depuis le dossier source Vencord :
+
+```bash
+pnpm build --dev
+```
+
+Puis dans Vesktop :
+
+1. Ouvre `Vesktop Settings`.
+2. Va dans `Vencord Location`.
+3. Clique `Change`.
+4. Selectionne le dossier `dist` de Vencord.
+5. Redemarre completement Vesktop.
+6. Active `GifFolders` dans les plugins Vencord.
+
+### Build pour Discord Desktop
+
+Depuis le dossier source Vencord :
+
+```bash
+pnpm build --dev
+pnpm inject
+```
+
+Redemarre Discord, puis active `GifFolders` dans les plugins Vencord.
+
+### Utilisation
+
+1. Ouvre le picker GIF Discord.
+2. Ouvre l'onglet favoris.
+3. Clique `Classer`.
+4. Cree des dossiers.
+5. Range les GIF dans un ou plusieurs dossiers.
+6. Filtre avec `Tous`, `Non ranges` ou un dossier.
+
+### Sauvegarde et restauration
+
+Utilise `Exporter` pour telecharger une sauvegarde JSON.
+
+Utilise `Importer` apres une reinstallation pour restaurer dossiers et affectations.
+
+### Depannage
+
+`GifFolders` n'apparait pas :
+
+- Verifie que le plugin est dans `src/userplugins/gifFolders/index.tsx`.
+- Recompile Vencord apres copie.
+- Redemarre Vesktop ou Discord completement.
+- Sur Vesktop, verifie que `Vencord Location` pointe vers ton dossier `dist`.
 
 ## Official References
 
