@@ -4,6 +4,12 @@ GifFolders is a local Vencord userplugin that adds folders to the native Discord
 
 The plugin UI supports French and English. It uses French when Discord/browser locale starts with `fr`; otherwise it uses English.
 
+## Screenshots
+
+![GifFolders picker filters](assets/gif-folders-picker.png)
+
+![GifFolders folder manager](assets/gif-folders-manager.png)
+
 ## Francais
 
 ### A savoir avant de partager
@@ -12,6 +18,7 @@ Vencord ne permet pas d'installer un userplugin prive avec un simple bouton dans
 
 Pour le partager proprement, publie ce depot sur GitHub ou en ZIP avec ces fichiers :
 
+- `assets/`
 - `gifFolders/`
 - `install-userplugin.sh`
 - `install-userplugin.ps1`
@@ -111,6 +118,7 @@ Vencord does not install private userplugins with a one-click button in the offi
 
 To share this plugin cleanly, publish this repository on GitHub or as a ZIP containing:
 
+- `assets/`
 - `gifFolders/`
 - `install-userplugin.sh`
 - `install-userplugin.ps1`
