@@ -1,0 +1,8 @@
+stable-backups/
+todo
+
+*.zip
+*.tar.gz
+
+.DS_Store
+Thumbs.db
