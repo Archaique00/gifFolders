@@ -1,5 +1,7 @@
 stable-backups/
 todo
+install-test-vesktop.sh
+à tester/
 
 *.zip
 *.tar.gz

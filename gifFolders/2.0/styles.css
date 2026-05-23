@@ -1,0 +1,561 @@
+#gif-picker-tab-panel,
+.vc-gif-folders-modal-root,
+.vc-gif-folders-chip-row,
+.vc-gif-folders-assignment-chips,
+.vc-gif-folders-folder-list,
+.vc-gif-folders-assignment-grid {
+    scrollbar-color: var(--scrollbar-thin-thumb) var(--scrollbar-thin-track);
+    scrollbar-width: thin;
+}
+
+.vc-gif-folders-chip-row::-webkit-scrollbar,
+.vc-gif-folders-assignment-chips::-webkit-scrollbar,
+.vc-gif-folders-folder-list::-webkit-scrollbar,
+.vc-gif-folders-assignment-grid::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+}
+
+.vc-gif-folders-modal-root {
+    --vc-gif-folders-modal-width: min(96vw, 1280px);
+    --vc-gif-folders-manager-height: min(78vh, 800px);
+    --vc-gif-folders-manager-min-height: min(560px, 78vh);
+    --vc-gif-folders-folder-column: minmax(280px, 350px);
+    --vc-gif-folders-grid-min: 190px;
+
+    min-width: var(--vc-gif-folders-modal-width);
+}
+
+.vc-gif-folders-modal-small {
+    --vc-gif-folders-modal-width: min(92vw, 980px);
+    --vc-gif-folders-manager-height: min(68vh, 640px);
+    --vc-gif-folders-manager-min-height: min(460px, 68vh);
+    --vc-gif-folders-folder-column: minmax(240px, 300px);
+    --vc-gif-folders-grid-min: 170px;
+}
+
+.vc-gif-folders-modal-large {
+    --vc-gif-folders-modal-width: min(96vw, 1280px);
+    --vc-gif-folders-manager-height: min(78vh, 800px);
+    --vc-gif-folders-manager-min-height: min(560px, 78vh);
+    --vc-gif-folders-folder-column: minmax(280px, 350px);
+    --vc-gif-folders-grid-min: 190px;
+}
+
+.vc-gif-folders-modal-fullscreen {
+    --vc-gif-folders-modal-width: 98vw;
+    --vc-gif-folders-manager-height: min(86vh, 980px);
+    --vc-gif-folders-manager-min-height: min(680px, 86vh);
+    --vc-gif-folders-folder-column: minmax(320px, 410px);
+    --vc-gif-folders-grid-min: 220px;
+}
+
+.vc-gif-folders-modal-root :where([class^="container__"], [class*=" container__"]) {
+    max-width: var(--vc-gif-folders-modal-width);
+    width: var(--vc-gif-folders-modal-width);
+}
+
+.vc-gif-folders-modal-root :where([class^="body__"], [class*=" body__"]) {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.vc-gif-folders-modal-root :where([class^="bodyInner__"], [class*=" bodyInner__"]) {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+    padding: 8px 10px 0;
+}
+
+.vc-gif-folders-picker-header {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    padding-bottom: 2px;
+}
+
+.vc-gif-folders-toolbar {
+    align-items: center;
+    display: grid;
+    gap: 8px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-width: 0;
+}
+
+.vc-gif-folders-chip-row {
+    align-content: flex-start;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    max-height: 96px;
+    min-width: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 0 2px 2px 0;
+}
+
+.vc-gif-folders-chip {
+    align-items: center;
+    appearance: none;
+    background: var(--background-secondary-alt, var(--background-secondary));
+    border: 1px solid var(--border-subtle, var(--background-modifier-accent));
+    border-radius: 8px;
+    color: var(--text-normal, #dbdee1);
+    cursor: pointer;
+    display: inline-flex;
+    font: inherit;
+    gap: 6px;
+    line-height: 1.2;
+    max-width: 180px;
+    min-height: 28px;
+    min-width: 0;
+    padding: 4px 9px;
+    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.vc-gif-folders-picker-header .vc-gif-folders-chip {
+    flex: 0 0 auto;
+    max-width: 132px;
+    min-height: 26px;
+    padding: 2px 8px;
+}
+
+.vc-gif-folders-assignment-chips .vc-gif-folders-chip {
+    max-width: 100%;
+    min-height: 24px;
+    padding: 2px 7px;
+}
+
+.vc-gif-folders-chip:hover {
+    background: var(--background-modifier-hover);
+    border-color: var(--background-modifier-accent);
+    color: var(--interactive-hover, var(--text-normal, #dbdee1));
+}
+
+.vc-gif-folders-chip:focus-visible,
+.vc-gif-folders-folder-select:focus-visible,
+.vc-gif-folders-assignment-card:focus-within {
+    outline: 2px solid var(--brand-500, #5865f2);
+    outline-offset: 2px;
+}
+
+.vc-gif-folders-chip.active {
+    background: var(--brand-500, #5865f2);
+    border-color: transparent;
+    color: var(--white-500, #fff);
+}
+
+.vc-gif-folders-chip.active:hover {
+    background: var(--brand-560, var(--brand-500, #4752c4));
+    color: var(--white-500, #fff);
+}
+
+.vc-gif-folders-chip span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vc-gif-folders-chip small {
+    color: inherit;
+    flex: 0 0 auto;
+    font-size: 11px;
+    opacity: 0.82;
+}
+
+.vc-gif-folders-size-control {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: flex-end;
+    margin-bottom: 10px;
+    min-width: 0;
+}
+
+.vc-gif-folders-size-button {
+    align-items: center;
+    appearance: none;
+    background: var(--background-secondary-alt, var(--background-secondary));
+    border: 1px solid var(--border-subtle, var(--background-modifier-accent));
+    border-radius: 8px;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: inline-flex;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    min-height: 28px;
+    padding: 3px 9px;
+    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.vc-gif-folders-size-button:hover {
+    background: var(--background-modifier-hover);
+    color: var(--interactive-hover, var(--text-normal, #dbdee1));
+}
+
+.vc-gif-folders-size-button:focus-visible {
+    outline: 2px solid var(--brand-500, #5865f2);
+    outline-offset: 2px;
+}
+
+.vc-gif-folders-size-button.active {
+    background: var(--brand-500, #5865f2);
+    border-color: transparent;
+    color: var(--white-500, #fff);
+}
+
+.vc-gif-folders-manager {
+    display: grid;
+    flex: 1 1 auto;
+    gap: 18px;
+    grid-template-columns: var(--vc-gif-folders-folder-column) minmax(0, 1fr);
+    height: var(--vc-gif-folders-manager-height);
+    min-height: var(--vc-gif-folders-manager-min-height);
+    min-width: 0;
+    overflow: hidden;
+}
+
+.vc-gif-folders-manager-folders,
+.vc-gif-folders-manager-gifs {
+    min-height: 0;
+    min-width: 0;
+}
+
+.vc-gif-folders-manager-folders {
+    border-right: 1px solid var(--border-subtle, var(--background-modifier-accent));
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow: hidden;
+    padding-right: 14px;
+}
+
+.vc-gif-folders-section-title {
+    align-items: baseline;
+    display: flex;
+    gap: 8px;
+    justify-content: space-between;
+}
+
+.vc-gif-folders-section-title .vc-h3-defaultMargin,
+.vc-gif-folders-section-title .vc-h5-defaultMargin {
+    margin-bottom: 0;
+}
+
+.vc-gif-folders-section-title small,
+.vc-gif-folders-manager-heading span {
+    color: var(--text-muted);
+    flex: 0 0 auto;
+    font-size: 12px;
+}
+
+.vc-gif-folders-create-folder {
+    align-items: center;
+    display: grid;
+    gap: 8px;
+    grid-template-columns: minmax(0, 1fr) max-content;
+}
+
+.vc-gif-folders-create-folder :where([class^="container__"], [class*=" container__"]) {
+    height: 32px;
+    min-height: 32px;
+}
+
+.vc-gif-folders-create-folder .vc-btn-small {
+    align-self: stretch;
+    height: 32px;
+    min-height: 32px;
+    min-width: 78px;
+    padding: 0 12px;
+}
+
+.vc-gif-folders-folder-list {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 2px;
+}
+
+.vc-gif-folders-folder-row {
+    align-items: center;
+    background: var(--background-secondary);
+    border: 1px solid var(--border-subtle, var(--background-modifier-accent));
+    border-radius: 8px;
+    display: grid;
+    gap: 6px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-height: 36px;
+    padding: 4px;
+    transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.vc-gif-folders-folder-row:hover {
+    background: var(--background-modifier-hover);
+}
+
+.vc-gif-folders-folder-row.active {
+    background: var(--background-modifier-selected);
+    border-color: var(--brand-500, #5865f2);
+}
+
+.vc-gif-folders-folder-row.editing {
+    grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.vc-gif-folders-folder-edit {
+    min-width: 0;
+}
+
+.vc-gif-folders-folder-select {
+    align-items: center;
+    appearance: none;
+    background: transparent;
+    border: 0;
+    color: var(--text-normal, #dbdee1);
+    cursor: pointer;
+    display: grid;
+    font: inherit;
+    gap: 8px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-height: 28px;
+    min-width: 0;
+    padding: 4px 6px;
+    text-align: left;
+}
+
+.vc-gif-folders-folder-select:hover {
+    color: var(--interactive-active, #fff);
+}
+
+.vc-gif-folders-folder-select span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vc-gif-folders-folder-select small {
+    color: var(--text-muted);
+}
+
+.vc-gif-folders-folder-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: flex-end;
+}
+
+.vc-gif-folders-folder-actions .vc-btn-small {
+    min-height: 26px;
+    min-width: 56px;
+    padding: 2px 8px;
+}
+
+.vc-gif-folders-backup {
+    border-top: 1px solid var(--border-subtle, var(--background-modifier-accent));
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 10px;
+}
+
+.vc-gif-folders-backup .vc-h3-defaultMargin,
+.vc-gif-folders-backup .vc-h5-defaultMargin {
+    margin-bottom: 0;
+}
+
+.vc-gif-folders-backup-actions {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: 1fr 1fr;
+}
+
+.vc-gif-folders-manager-gifs {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow: hidden;
+}
+
+.vc-gif-folders-manager-title {
+    align-items: center;
+    display: grid;
+    gap: 10px;
+    grid-template-columns: minmax(0, 1fr) minmax(180px, 260px);
+}
+
+.vc-gif-folders-manager-heading {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.vc-gif-folders-manager-heading .vc-h3-defaultMargin,
+.vc-gif-folders-manager-heading .vc-h5-defaultMargin {
+    margin-bottom: 0;
+}
+
+.vc-gif-folders-assignment-grid {
+    align-content: start;
+    display: grid;
+    flex: 1 1 auto;
+    gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(var(--vc-gif-folders-grid-min), 1fr));
+    min-height: 0;
+    overflow-y: auto;
+    padding: 2px 4px 2px 2px;
+}
+
+.vc-gif-folders-assignment-card {
+    background: var(--background-secondary);
+    border: 1px solid var(--border-subtle, var(--background-modifier-accent));
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    min-height: 300px;
+    min-width: 0;
+    overflow: hidden;
+    transition: background-color 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+
+.vc-gif-folders-assignment-card:hover {
+    background: var(--background-secondary-alt, var(--background-secondary));
+    border-color: var(--background-modifier-accent);
+}
+
+.vc-gif-folders-assignment-card img,
+.vc-gif-folders-assignment-card video {
+    background: var(--background-tertiary);
+    display: block;
+    flex: 0 0 128px;
+    height: 128px;
+    object-fit: cover;
+    width: 100%;
+}
+
+.vc-gif-folders-image-fallback {
+    align-items: center;
+    background: var(--background-tertiary);
+    color: var(--text-muted);
+    display: flex;
+    flex: 0 0 128px;
+    font-size: 12px;
+    height: 128px;
+    justify-content: center;
+    padding: 12px;
+    text-align: center;
+}
+
+.vc-gif-folders-image-fallback[hidden] {
+    display: none;
+}
+
+.vc-gif-folders-assignment-body {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 0;
+    padding: 8px;
+}
+
+.vc-gif-folders-assignment-body strong {
+    color: var(--text-normal, #dbdee1);
+    min-height: 18px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vc-gif-folders-assignment-chips {
+    align-content: flex-start;
+    display: flex;
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    gap: 4px;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 2px;
+}
+
+.vc-gif-folders-card-actions {
+    display: flex;
+    margin-top: auto;
+}
+
+.vc-gif-folders-card-actions .vc-btn-small {
+    min-height: 28px;
+    width: 100%;
+}
+
+.vc-gif-folders-empty {
+    align-items: center;
+    color: var(--text-muted);
+    display: flex;
+    grid-column: 1 / -1;
+    justify-content: center;
+    min-height: 180px;
+    text-align: center;
+}
+
+@media (width <= 920px) {
+    .vc-gif-folders-modal-root {
+        --vc-gif-folders-modal-width: min(96vw, 1080px);
+        --vc-gif-folders-folder-column: minmax(260px, 320px);
+        --vc-gif-folders-grid-min: 170px;
+    }
+}
+
+@media (width <= 820px) {
+    .vc-gif-folders-toolbar,
+    .vc-gif-folders-manager,
+    .vc-gif-folders-manager-title {
+        grid-template-columns: 1fr;
+    }
+
+    .vc-gif-folders-manager {
+        height: auto;
+        max-height: 72vh;
+        min-height: 0;
+        overflow-y: auto;
+    }
+
+    .vc-gif-folders-manager-folders {
+        border-bottom: 1px solid var(--border-subtle, var(--background-modifier-accent));
+        border-right: 0;
+        max-height: 280px;
+        padding-bottom: 12px;
+        padding-right: 0;
+    }
+
+    .vc-gif-folders-manager-title {
+        align-items: stretch;
+    }
+
+    .vc-gif-folders-size-control {
+        justify-content: flex-start;
+    }
+}
+
+@media (width <= 520px) {
+    .vc-gif-folders-modal-root {
+        min-width: 94vw;
+    }
+
+    .vc-gif-folders-create-folder,
+    .vc-gif-folders-backup-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .vc-gif-folders-assignment-grid {
+        grid-template-columns: 1fr;
+    }
+}
