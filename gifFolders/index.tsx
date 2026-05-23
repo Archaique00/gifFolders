@@ -16,9 +16,11 @@ import type { RenderModalProps } from "@vencord/discord-types";
 import { Modal, openModal, showToast, TextInput, useEffect, useMemo, useState } from "@webpack/common";
 
 const STORE_KEY = "GifFolders_favoriteFolders_v2";
+const MANAGER_SIZE_STORE_KEY = "GifFolders_managerWindowSize";
 const EXPORT_VERSION = 1;
 const ALL_FOLDER_ID = "all";
 const UNSORTED_FOLDER_ID = "unsorted";
+const MANAGER_SIZE_OPTIONS = ["small", "large", "fullscreen"] as const;
 
 interface SearchBarComponentProps {
     ref?: React.RefObject<any>;
@@ -32,6 +34,7 @@ interface SearchBarComponentProps {
 }
 
 type SearchBarComponent = React.FC<SearchBarComponentProps>;
+type ManagerSize = typeof MANAGER_SIZE_OPTIONS[number];
 type PreviewKind = "image" | "video";
 
 interface PreviewCandidate {
@@ -141,6 +144,10 @@ const TRANSLATIONS = {
         save: "Save",
         saveError: "Could not save GIF folders.",
         searchPlaceholder: "Search",
+        sizeFullscreen: "Almost fullscreen",
+        sizeLabel: "Window size",
+        sizeLarge: "Large",
+        sizeSmall: "Small",
         unsorted: "Unsorted",
         untitledFolder: "Untitled",
         favoritesCount(count: number) {
@@ -186,6 +193,10 @@ const TRANSLATIONS = {
         save: "Valider",
         saveError: "Impossible de sauvegarder les dossiers GIF.",
         searchPlaceholder: "Rechercher",
+        sizeFullscreen: "Presque plein ecran",
+        sizeLabel: "Taille de la fenetre",
+        sizeLarge: "Grande",
+        sizeSmall: "Petite",
         unsorted: "Non ranges",
         untitledFolder: "Sans nom",
         favoritesCount(count: number) {
@@ -217,6 +228,36 @@ function getLocale(): SupportedLocale {
 
 function getText() {
     return TRANSLATIONS[getLocale()];
+}
+
+function normalizeManagerSize(value: unknown): ManagerSize {
+    return MANAGER_SIZE_OPTIONS.includes(value as ManagerSize) ? value as ManagerSize : "large";
+}
+
+function loadManagerSize() {
+    try {
+        return normalizeManagerSize(window.localStorage.getItem(MANAGER_SIZE_STORE_KEY));
+    } catch {
+        return "large";
+    }
+}
+
+function saveManagerSize(size: ManagerSize) {
+    try {
+        window.localStorage.setItem(MANAGER_SIZE_STORE_KEY, size);
+    } catch { }
+}
+
+function getManagerSizeLabel(text: ReturnType<typeof getText>, size: ManagerSize) {
+    switch (size) {
+        case "small":
+            return text.sizeSmall;
+        case "fullscreen":
+            return text.sizeFullscreen;
+        case "large":
+        default:
+            return text.sizeLarge;
+    }
 }
 
 const createId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
@@ -943,6 +984,7 @@ function GifFolderManagerModal({
     const [editingFolderName, setEditingFolderName] = useState("");
     const [newFolderName, setNewFolderName] = useState("");
     const [query, setQuery] = useState("");
+    const [managerSize, setManagerSize] = useState<ManagerSize>(loadManagerSize);
 
     const managerFolderLabel = getFolderFilterLabel(store, activeManagerFolderId);
     const filteredFavorites = useMemo(() => {
@@ -1105,7 +1147,13 @@ function GifFolderManagerModal({
         });
     }
 
+    function selectManagerSize(size: ManagerSize) {
+        setManagerSize(size);
+        saveManagerSize(size);
+    }
+
     return (
+        <div className={`vc-gif-folders-modal-root vc-gif-folders-modal-${managerSize}`}>
         <Modal
             {...modalProps}
             actions={[
@@ -1119,6 +1167,20 @@ function GifFolderManagerModal({
             subtitle={text.favoritesCount(favorites.length)}
             title={text.managerTitle}
         >
+            <div className="vc-gif-folders-size-control" role="group" aria-label={text.sizeLabel}>
+                {MANAGER_SIZE_OPTIONS.map(size => (
+                    <button
+                        aria-pressed={managerSize === size}
+                        className={managerSize === size ? "vc-gif-folders-size-button active" : "vc-gif-folders-size-button"}
+                        key={size}
+                        onClick={() => selectManagerSize(size)}
+                        type="button"
+                    >
+                        {getManagerSizeLabel(text, size)}
+                    </button>
+                ))}
+            </div>
+
             <div className="vc-gif-folders-manager">
                 <section className="vc-gif-folders-manager-folders">
                     <div className="vc-gif-folders-section-title">
@@ -1259,6 +1321,7 @@ function GifFolderManagerModal({
                 </section>
             </div>
         </Modal>
+        </div>
     );
 }
 
