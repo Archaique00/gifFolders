@@ -1,6 +1,6 @@
-# GifFolders for Vencord / Vesktop
+# GifFolders for Vencord / Equicord / Vesktop
 
-GifFolders is a Vencord userplugin that adds local folders to Discord's native favorite GIF picker.
+GifFolders is a Vencord / Equicord userplugin that adds local folders to Discord's native favorite GIF picker.
 
 This repository contains two local versions:
 
