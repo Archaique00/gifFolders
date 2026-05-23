@@ -11,6 +11,7 @@ gifFolders/
 │   ├── index.tsx
 │   └── styles.css
 └── 2.0/
+    ├── README.md
     ├── index.tsx
     └── styles.css
 ```
@@ -45,14 +46,17 @@ gifFolders/2.0/
 - Search inside favorite GIFs.
 - Create, rename, and delete folders.
 - Export and import folder data as JSON.
+- Resize the GIF manager window in version `2.0`.
 - Store data locally with Vencord `DataStore`.
 - English/French UI depending on Discord/browser language.
 
 ## Screenshots
 
-![GifFolders picker filters](assets/gif-folders-picker.png)
+![GifFolders manager small window](assets/gif-folders-manager-small.png)
 
-![GifFolders folder manager](assets/gif-folders-manager.png)
+![GifFolders manager large window](assets/gif-folders-manager-large.png)
+
+![GifFolders manager almost fullscreen](assets/gif-folders-manager-fullscreen.png)
 
 ## Manual Install
 
