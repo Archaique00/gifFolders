@@ -1,6 +1,8 @@
 # GifFolders 2.0
 
-Version with the updated manager UI, window size controls, and automatic English/French language detection.
+Version with the updated manager UI, window size controls, automatic
+English/French language detection, and bulk export/import of native favorite
+GIFs together with folder assignments.
 
 Copy the files from this folder to:
 

@@ -45,7 +45,7 @@ gifFolders/2.0/
 - Assign one GIF to multiple folders.
 - Search inside favorite GIFs.
 - Create, rename, and delete folders.
-- Export and import folder data as JSON.
+- Export and import folders and all native favorite GIFs as JSON.
 - Resize the GIF manager window in version `2.0`.
 - Store data locally with Vencord `DataStore`.
 - English/French UI depending on Discord/browser language.
@@ -119,8 +119,14 @@ Then fully restart Discord and enable `GifFolders` in Vencord plugins.
 
 ## Backup
 
-Use `Export` in the GifFolders manager to save folders and assignments as JSON.
+Use `Export` in the GifFolders manager to save folders, assignments, and all
+native Discord favorite GIF entries as JSON.
 
-Use `Import` to restore them later.
+Use `Import` to restore them later. Missing favorite GIFs are added in one
+Discord settings update; favorites already present are kept unchanged. Older
+GifFolders version 1 exports remain supported, but they can only restore GIFs
+that had at least one folder assignment.
 
-The backup only contains GifFolders data. It does not include Discord tokens or Discord/Tenor favorite data.
+The backup does not contain Discord tokens. It contains the metadata and URLs
+Discord needs to restore the native favorite GIF list; it does not embed or
+download the GIF media files themselves.

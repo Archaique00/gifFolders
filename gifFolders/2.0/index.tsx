@@ -13,14 +13,16 @@ import { HeadingSecondary, HeadingTertiary } from "@components/Heading";
 import { Paragraph } from "@components/Paragraph";
 import definePlugin from "@utils/types";
 import type { RenderModalProps } from "@vencord/discord-types";
-import { Modal, openModal, showToast, TextInput, useEffect, useMemo, useState } from "@webpack/common";
+import { findByPropsLazy } from "@webpack";
+import { Modal, openModal, showToast, TextInput, UserSettingsActionCreators, useEffect, useMemo, useState } from "@webpack/common";
 
 const STORE_KEY = "GifFolders_favoriteFolders_v2";
 const MANAGER_SIZE_STORE_KEY = "GifFolders_managerWindowSize";
-const EXPORT_VERSION = 1;
+const EXPORT_VERSION = 2;
 const ALL_FOLDER_ID = "all";
 const UNSORTED_FOLDER_ID = "unsorted";
 const MANAGER_SIZE_OPTIONS = ["small", "large", "fullscreen"] as const;
+const UserSettingsDelay = findByPropsLazy("INFREQUENT_USER_ACTION");
 
 interface SearchBarComponentProps {
     ref?: React.RefObject<any>;
@@ -97,6 +99,21 @@ interface FolderStoreExport {
     version: number;
     exportedAt: string;
     store: FolderStore;
+    favoriteGifs: FavoriteGifsSettings;
+}
+
+interface FavoriteGifSettingsEntry {
+    order?: number;
+    [key: string]: unknown;
+}
+
+interface FavoriteGifsSettings {
+    gifs?: Record<string, FavoriteGifSettingsEntry>;
+}
+
+interface GifFoldersImport {
+    store: FolderStore;
+    favoriteGifs: Record<string, FavoriteGifSettingsEntry>;
 }
 
 const runtime = {
@@ -130,6 +147,10 @@ const TRANSLATIONS = {
         folderNamePlaceholder: "Folder name",
         foldersHeading: "Folders",
         import: "Import",
+        importFavoritesError: "Folders imported, but favorite GIFs could not be added.",
+        importFavoritesSuccess(count: number) {
+            return `${count} missing favorite ${count === 1 ? "GIF was" : "GIFs were"} added.`;
+        },
         importInvalid: "Invalid import file.",
         importSuccess: "GIF configuration imported.",
         loadError: "Could not load GIF folders.",
@@ -179,6 +200,10 @@ const TRANSLATIONS = {
         folderNamePlaceholder: "Nom du dossier",
         foldersHeading: "Dossiers",
         import: "Importer",
+        importFavoritesError: "Dossiers importes, mais les GIF favoris n'ont pas pu etre ajoutes.",
+        importFavoritesSuccess(count: number) {
+            return `${count} GIF favoris manquants ajoutes.`;
+        },
         importInvalid: "Fichier d'import invalide.",
         importSuccess: "Configuration GIF importee.",
         loadError: "Impossible de charger les dossiers GIF.",
@@ -331,7 +356,24 @@ function getFolderFilterLabel(store: FolderStore, folderId: string) {
     return store.folders.find(folder => folder.id === folderId)?.name ?? text.folder;
 }
 
-function normalizeImportedStore(value: unknown): FolderStore | null {
+function normalizeFavoriteGifs(value: unknown) {
+    if (!value || typeof value !== "object") return {};
+
+    const record = value as Record<string, unknown>;
+    const gifs = record.gifs && typeof record.gifs === "object"
+        ? record.gifs as Record<string, unknown>
+        : record;
+    const normalized: Record<string, FavoriteGifSettingsEntry> = {};
+
+    for (const [url, entry] of Object.entries(gifs)) {
+        if (!isImportableGifUrl(url) || !entry || typeof entry !== "object" || Array.isArray(entry)) continue;
+        normalized[url] = { ...(entry as FavoriteGifSettingsEntry) };
+    }
+
+    return normalized;
+}
+
+function normalizeImport(value: unknown): GifFoldersImport | null {
     if (!value || typeof value !== "object") return null;
 
     const record = value as Record<string, unknown>;
@@ -342,15 +384,29 @@ function normalizeImportedStore(value: unknown): FolderStore | null {
     const hasAssignments = Boolean(candidateRecord.assignments && typeof candidateRecord.assignments === "object");
     if (!Array.isArray(candidateRecord.folders) && !hasAssignments) return null;
 
-    return normalizeStore(candidate as FolderStore);
+    const store = normalizeStore(candidate as FolderStore);
+    const exportedFavorites = normalizeFavoriteGifs(record.favoriteGifs);
+
+    // Version 1 exports did not contain native favorites. Assignment keys are
+    // still enough to restore every GIF that was placed in a folder.
+    for (const url of getImportedGifUrls(store)) {
+        exportedFavorites[url] ??= {};
+    }
+
+    return { store, favoriteGifs: exportedFavorites };
 }
 
-function exportStore(store: FolderStore) {
+async function exportStore(store: FolderStore) {
+    await UserSettingsActionCreators.FrecencyUserSettingsActionCreators.loadIfNecessary?.();
+
     const payload: FolderStoreExport = {
         plugin: "GifFolders",
         version: EXPORT_VERSION,
         exportedAt: new Date().toISOString(),
-        store: normalizeStore(store)
+        store: normalizeStore(store),
+        favoriteGifs: {
+            gifs: { ...(getCurrentFavoriteGifs() ?? {}) }
+        }
     };
 
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
@@ -368,7 +424,70 @@ function exportStore(store: FolderStore) {
     showToast(getText().exportSuccess, "success");
 }
 
-function importStore(onImport: (store: FolderStore) => void) {
+function isImportableGifUrl(value: string) {
+    try {
+        const url = new URL(value);
+        return url.protocol === "https:" || url.protocol === "http:";
+    } catch {
+        return false;
+    }
+}
+
+function getImportedGifUrls(store: FolderStore) {
+    return Object.keys(store.assignments)
+        .filter(isImportableGifUrl)
+        .filter((url, index, urls) => urls.indexOf(url) === index);
+}
+
+function getFavoriteGifOrder(entry: FavoriteGifSettingsEntry | undefined) {
+    return typeof entry?.order === "number" && Number.isFinite(entry.order)
+        ? entry.order
+        : 0;
+}
+
+function getNextFavoriteGifOrder(gifs: Record<string, FavoriteGifSettingsEntry>) {
+    return Math.max(0, ...Object.values(gifs).map(getFavoriteGifOrder)) + 1;
+}
+
+function getCurrentFavoriteGifs() {
+    return UserSettingsActionCreators.FrecencyUserSettingsActionCreators
+        .getCurrentValue()
+        ?.favoriteGifs
+        ?.gifs as Record<string, FavoriteGifSettingsEntry> | undefined;
+}
+
+async function importFavoriteGifs(importedGifs: Record<string, FavoriteGifSettingsEntry>) {
+    const importedUrls = Object.keys(importedGifs);
+    if (importedUrls.length === 0) return 0;
+
+    await UserSettingsActionCreators.FrecencyUserSettingsActionCreators.loadIfNecessary?.();
+
+    const currentGifs = getCurrentFavoriteGifs() ?? {};
+    const missingUrls = importedUrls.filter(url => !Object.hasOwn(currentGifs, url));
+    if (missingUrls.length === 0) return 0;
+
+    await UserSettingsActionCreators.FrecencyUserSettingsActionCreators.updateAsync(
+        "favoriteGifs",
+        (favoriteGifs: FavoriteGifsSettings) => {
+            favoriteGifs.gifs ??= {};
+            let nextOrder = getNextFavoriteGifOrder(favoriteGifs.gifs);
+
+            for (const url of missingUrls) {
+                if (Object.hasOwn(favoriteGifs.gifs, url)) continue;
+                const importedEntry = importedGifs[url];
+                favoriteGifs.gifs[url] = {
+                    ...importedEntry,
+                    order: nextOrder++
+                };
+            }
+        },
+        UserSettingsDelay.INFREQUENT_USER_ACTION
+    );
+
+    return missingUrls.length;
+}
+
+function importStore(onImport: (imported: GifFoldersImport) => void) {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "application/json,.json";
@@ -378,10 +497,10 @@ function importStore(onImport: (store: FolderStore) => void) {
         if (!file) return;
 
         try {
-            const importedStore = normalizeImportedStore(JSON.parse(await file.text()));
-            if (!importedStore) throw new Error("Invalid GifFolders export");
+            const imported = normalizeImport(JSON.parse(await file.text()));
+            if (!imported) throw new Error("Invalid GifFolders export");
 
-            onImport(importedStore);
+            onImport(imported);
             showToast(getText().importSuccess, "success");
         } catch {
             showToast(getText().importInvalid, "failure");
@@ -1139,11 +1258,22 @@ function GifFolderManagerModal({
     }
 
     function handleImportStore() {
-        importStore(importedStore => {
+        importStore(({ store: importedStore, favoriteGifs }) => {
             runtime.activeFolderId = ALL_FOLDER_ID;
             setActiveManagerFolderId(ALL_FOLDER_ID);
             cancelRenameFolder();
             persist(importedStore);
+
+            importFavoriteGifs(favoriteGifs)
+                .then(importedCount => {
+                    if (importedCount > 0) {
+                        showToast(getText().importFavoritesSuccess(importedCount), "success");
+                    }
+                })
+                .catch(error => {
+                    console.error("[GifFolders] Failed to import favorite GIFs", error);
+                    showToast(getText().importFavoritesError, "failure");
+                });
         });
     }
 
@@ -1278,7 +1408,14 @@ function GifFolderManagerModal({
                     <div className="vc-gif-folders-backup">
                         <HeadingTertiary>{text.backup}</HeadingTertiary>
                         <div className="vc-gif-folders-backup-actions">
-                            <Button onClick={() => exportStore(store)} size="small" variant="secondary">
+                            <Button
+                                onClick={() => exportStore(store).catch(error => {
+                                    console.error("[GifFolders] Failed to export favorite GIFs", error);
+                                    showToast(getText().saveError, "failure");
+                                })}
+                                size="small"
+                                variant="secondary"
+                            >
                                 {text.export}
                             </Button>
                             <Button onClick={handleImportStore} size="small" variant="secondary">
