@@ -70,6 +70,27 @@
     padding: 8px 10px 0;
 }
 
+:where([class^="positionContainer__"], [class*=" positionContainer__"]):has(.vc-gif-folders-dom-fallback),
+:where([class^="drawerSizingWrapper__"], [class*=" drawerSizingWrapper__"]):has(.vc-gif-folders-dom-fallback),
+:where([class^="contentWrapper__"], [class*=" contentWrapper__"]):has(.vc-gif-folders-dom-fallback) {
+    max-height: min(82vh, 720px);
+}
+
+:where([class^="contentWrapper__"], [class*=" contentWrapper__"]):has(.vc-gif-folders-dom-fallback) {
+    min-height: min(76vh, 660px);
+}
+
+#gif-picker-tab-panel:has(.vc-gif-folders-dom-fallback) {
+    display: flex;
+    flex-direction: column;
+    min-height: min(68vh, 590px);
+}
+
+#gif-picker-tab-panel:has(.vc-gif-folders-dom-fallback) :where([class*="scrollerBase"], [class*="results"], [class*="resultItems"]) {
+    flex: 1 1 auto;
+    min-height: 360px;
+}
+
 .vc-gif-folders-picker-header {
     display: flex;
     flex-direction: column;
@@ -79,23 +100,10 @@
 }
 
 .vc-gif-folders-dom-fallback {
-    padding: 8px 8px 6px;
-}
-
-.vc-gif-folders-fallback-search {
-    background: var(--input-background, var(--background-secondary));
-    border: 1px solid var(--input-border, var(--background-modifier-accent));
-    border-radius: 8px;
-    color: var(--text-normal, #dbdee1);
-    font: inherit;
-    min-height: 34px;
-    outline: none;
-    padding: 6px 10px;
-    width: 100%;
-}
-
-.vc-gif-folders-fallback-search:focus {
-    border-color: var(--brand-500, #5865f2);
+    border-bottom: 1px solid var(--border-subtle, var(--background-modifier-accent));
+    gap: 8px;
+    margin: 0;
+    padding: 10px 10px 10px;
 }
 
 .vc-gif-folders-toolbar {
@@ -104,6 +112,11 @@
     gap: 8px;
     grid-template-columns: minmax(0, 1fr) auto;
     min-width: 0;
+}
+
+.vc-gif-folders-dom-fallback .vc-gif-folders-toolbar {
+    align-items: start;
+    gap: 10px;
 }
 
 .vc-gif-folders-chip-row {
@@ -116,6 +129,13 @@
     overflow-x: hidden;
     overflow-y: auto;
     padding: 0 2px 2px 0;
+}
+
+.vc-gif-folders-dom-fallback .vc-gif-folders-chip-row {
+    max-height: 76px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 0;
 }
 
 .vc-gif-folders-chip {
@@ -137,7 +157,18 @@
     transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
 }
 
-.vc-gif-folders-picker-header .vc-gif-folders-chip {
+.vc-gif-folders-dom-fallback .vc-gif-folders-chip {
+    max-width: 150px;
+    min-height: 30px;
+    padding: 5px 9px;
+}
+
+.vc-gif-folders-dom-fallback .vc-btn-small {
+    min-height: 30px;
+    min-width: 72px;
+}
+
+.vc-gif-folders-picker-header:not(.vc-gif-folders-dom-fallback) .vc-gif-folders-chip {
     flex: 0 0 auto;
     max-width: 132px;
     min-height: 26px;

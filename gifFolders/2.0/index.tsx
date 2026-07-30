@@ -1203,7 +1203,6 @@ function GifFoldersDomFallback() {
     const text = getText();
     const [store, setStore] = useState(runtime.store ?? emptyStore());
     const [activeFolderId, setActiveFolderId] = useState(runtime.activeFolderId);
-    const [query, setQuery] = useState(runtime.query);
     const [favorites, setFavorites] = useState<Gif[]>([]);
 
     useEffect(() => {
@@ -1239,62 +1238,44 @@ function GifFoldersDomFallback() {
         applyDomFallbackFilter();
     }
 
-    function updateSearch(nextQuery: string) {
-        runtime.query = nextQuery;
-        setQuery(nextQuery);
-        scrollPickerToTop();
-        applyDomFallbackFilter();
-    }
-
     return (
-        <>
-            <input
-                aria-label={text.favoriteSearchPlaceholder}
-                className="vc-gif-folders-fallback-search"
-                onChange={event => updateSearch(event.currentTarget.value)}
-                placeholder={text.favoriteSearchPlaceholder}
-                type="search"
-                value={query}
-            />
-
-            <div className="vc-gif-folders-toolbar">
-                <div className="vc-gif-folders-chip-row">
+        <div className="vc-gif-folders-toolbar">
+            <div className="vc-gif-folders-chip-row">
+                <FolderChip
+                    active={activeFolderId === ALL_FOLDER_ID}
+                    count={favorites.length}
+                    label={text.all}
+                    onClick={() => selectFolder(ALL_FOLDER_ID)}
+                />
+                <FolderChip
+                    active={activeFolderId === UNSORTED_FOLDER_ID}
+                    count={folderCount(store, favorites, UNSORTED_FOLDER_ID)}
+                    label={text.unsorted}
+                    onClick={() => selectFolder(UNSORTED_FOLDER_ID)}
+                />
+                {store.folders.map(folder => (
                     <FolderChip
-                        active={activeFolderId === ALL_FOLDER_ID}
-                        count={favorites.length}
-                        label={text.all}
-                        onClick={() => selectFolder(ALL_FOLDER_ID)}
+                        active={activeFolderId === folder.id}
+                        count={folderCount(store, favorites, folder.id)}
+                        key={folder.id}
+                        label={folder.name}
+                        onClick={() => selectFolder(folder.id)}
                     />
-                    <FolderChip
-                        active={activeFolderId === UNSORTED_FOLDER_ID}
-                        count={folderCount(store, favorites, UNSORTED_FOLDER_ID)}
-                        label={text.unsorted}
-                        onClick={() => selectFolder(UNSORTED_FOLDER_ID)}
-                    />
-                    {store.folders.map(folder => (
-                        <FolderChip
-                            active={activeFolderId === folder.id}
-                            count={folderCount(store, favorites, folder.id)}
-                            key={folder.id}
-                            label={folder.name}
-                            onClick={() => selectFolder(folder.id)}
-                        />
-                    ))}
-                </div>
-
-                <Button
-                    onClick={() => openManagerModal(favorites, store, nextStore => {
-                        runtime.store = nextStore;
-                        setStore(nextStore);
-                        applyDomFallbackFilter();
-                    })}
-                    size="small"
-                    variant="secondary"
-                >
-                    {text.manageButton}
-                </Button>
+                ))}
             </div>
-        </>
+
+            <Button
+                onClick={() => openManagerModal(favorites, store, nextStore => {
+                    runtime.store = nextStore;
+                    setStore(nextStore);
+                    applyDomFallbackFilter();
+                })}
+                size="small"
+                variant="secondary"
+            >
+                {text.manageButton}
+            </Button>
+        </div>
     );
 }
 
