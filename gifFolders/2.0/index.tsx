@@ -14,7 +14,7 @@ import { Paragraph } from "@components/Paragraph";
 import definePlugin from "@utils/types";
 import type { RenderModalProps } from "@vencord/discord-types";
 import { findByPropsLazy } from "@webpack";
-import { Modal, openModal, showToast, TextInput, UserSettingsActionCreators, useEffect, useMemo, useState } from "@webpack/common";
+import { createRoot, Modal, openModal, showToast, TextInput, UserSettingsActionCreators, useEffect, useMemo, useState } from "@webpack/common";
 
 const STORE_KEY = "GifFolders_favoriteFolders_v2";
 const MANAGER_SIZE_STORE_KEY = "GifFolders_managerWindowSize";
@@ -124,6 +124,10 @@ const runtime = {
 };
 
 let storePromise: Promise<FolderStore> | null = null;
+let fallbackObserver: MutationObserver | null = null;
+let fallbackScanTimeout: number | null = null;
+let fallbackRoot: ReturnType<typeof createRoot> | null = null;
+let fallbackHost: HTMLElement | null = null;
 
 type SupportedLocale = "en" | "fr";
 
@@ -165,6 +169,8 @@ const TRANSLATIONS = {
         save: "Save",
         saveError: "Could not save GIF folders.",
         searchPlaceholder: "Search",
+        syncExports: "Sync exports",
+        syncExportsSuccess: "GIF exports synchronized.",
         sizeFullscreen: "Almost fullscreen",
         sizeLabel: "Window size",
         sizeLarge: "Large",
@@ -218,6 +224,8 @@ const TRANSLATIONS = {
         save: "Valider",
         saveError: "Impossible de sauvegarder les dossiers GIF.",
         searchPlaceholder: "Rechercher",
+        syncExports: "Sync exports",
+        syncExportsSuccess: "Exports GIF synchronises.",
         sizeFullscreen: "Presque plein ecran",
         sizeLabel: "Taille de la fenetre",
         sizeLarge: "Grande",
@@ -399,29 +407,35 @@ function normalizeImport(value: unknown): GifFoldersImport | null {
 async function exportStore(store: FolderStore) {
     await UserSettingsActionCreators.FrecencyUserSettingsActionCreators.loadIfNecessary?.();
 
-    const payload: FolderStoreExport = {
-        plugin: "GifFolders",
-        version: EXPORT_VERSION,
-        exportedAt: new Date().toISOString(),
-        store: normalizeStore(store),
-        favoriteGifs: {
-            gifs: { ...(getCurrentFavoriteGifs() ?? {}) }
-        }
-    };
+    downloadExport(createExportPayload(store, { ...(getCurrentFavoriteGifs() ?? {}) }), "gif-folders");
+    showToast(getText().exportSuccess, "success");
+}
 
+function downloadExport(payload: FolderStoreExport, filePrefix: string) {
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
 
     link.href = url;
-    link.download = `gif-folders-${new Date().toISOString().slice(0, 10)}.json`;
+    link.download = `${filePrefix}-${new Date().toISOString().slice(0, 10)}.json`;
     link.style.display = "none";
     document.body.append(link);
     link.click();
     link.remove();
 
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-    showToast(getText().exportSuccess, "success");
+}
+
+function createExportPayload(store: FolderStore, favoriteGifs: Record<string, FavoriteGifSettingsEntry>): FolderStoreExport {
+    return {
+        plugin: "GifFolders",
+        version: EXPORT_VERSION,
+        exportedAt: new Date().toISOString(),
+        store: normalizeStore(store),
+        favoriteGifs: {
+            gifs: favoriteGifs
+        }
+    };
 }
 
 function isImportableGifUrl(value: string) {
@@ -508,6 +522,111 @@ function importStore(onImport: (imported: GifFoldersImport) => void) {
     };
 
     input.click();
+}
+
+function selectExportFiles() {
+    return new Promise<File[]>((resolve, reject) => {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "application/json,.json";
+        input.multiple = true;
+
+        input.onchange = () => {
+            const files = [...(input.files ?? [])];
+            if (files.length !== 2) {
+                reject(new Error("Expected exactly two GifFolders export files"));
+                return;
+            }
+
+            resolve(files);
+        };
+
+        input.click();
+    });
+}
+
+async function readExportFile(file: File) {
+    const imported = normalizeImport(JSON.parse(await file.text()));
+    if (!imported) throw new Error("Invalid GifFolders export");
+    return imported;
+}
+
+function getFolderMergeKey(folder: GifFolder) {
+    return folder.name.trim().toLowerCase() || folder.id;
+}
+
+function mergeImportedExports(first: GifFoldersImport, second: GifFoldersImport): GifFoldersImport {
+    const folders: GifFolder[] = [];
+    const folderIdMap = new Map<string, string>();
+    const folderKeyMap = new Map<string, string>();
+
+    function addFolder(folder: GifFolder) {
+        const key = getFolderMergeKey(folder);
+        const existingId = folderKeyMap.get(key);
+        if (existingId) {
+            folderIdMap.set(folder.id, existingId);
+            return;
+        }
+
+        let id = folder.id;
+        if (folders.some(existingFolder => existingFolder.id === id)) {
+            id = createId();
+        }
+
+        folderIdMap.set(folder.id, id);
+        folderKeyMap.set(key, id);
+        folders.push({ ...folder, id });
+    }
+
+    first.store.folders.forEach(addFolder);
+    second.store.folders.forEach(addFolder);
+
+    const assignments: Record<string, string[]> = {};
+
+    function addAssignments(store: FolderStore) {
+        for (const [gifKey, folderIds] of Object.entries(store.assignments)) {
+            const nextFolderIds = folderIds
+                .map(folderId => folderIdMap.get(folderId))
+                .filter(Boolean) as string[];
+
+            if (nextFolderIds.length === 0) continue;
+
+            assignments[gifKey] = [...new Set([
+                ...(assignments[gifKey] ?? []),
+                ...nextFolderIds
+            ])];
+        }
+    }
+
+    addAssignments(first.store);
+    addAssignments(second.store);
+
+    const favoriteGifs = {
+        ...first.favoriteGifs,
+        ...second.favoriteGifs
+    };
+    let nextOrder = getNextFavoriteGifOrder(favoriteGifs);
+
+    for (const url of getImportedGifUrls({ folders, assignments })) {
+        favoriteGifs[url] ??= { order: nextOrder++ };
+    }
+
+    return {
+        store: normalizeStore({ folders, assignments }),
+        favoriteGifs
+    };
+}
+
+async function syncExportFiles() {
+    const [firstFile, secondFile] = await selectExportFiles();
+    const [first, second] = await Promise.all([
+        readExportFile(firstFile),
+        readExportFile(secondFile)
+    ]);
+    const merged = mergeImportedExports(first, second);
+
+    downloadExport(createExportPayload(merged.store, merged.favoriteGifs), "gif-folders-synced");
+    showToast(getText().syncExportsSuccess, "success");
 }
 
 function getGifKey(gif: Gif) {
@@ -926,10 +1045,141 @@ function scrollPickerToTop() {
 
 function refreshPicker() {
     const { instance } = runtime;
+    applyDomFallbackFilter();
     if (!instance || instance.dead) return;
 
     instance.props.favorites = filterFavorites(getOriginalFavorites(instance));
     instance.forceUpdate();
+}
+
+function getCurrentFavoritesFromSettings(): Gif[] {
+    return Object.entries(getCurrentFavoriteGifs() ?? {})
+        .map(([url, entry]) => ({
+            ...(entry as Gif),
+            url,
+            src: typeof (entry as Gif).src === "string" ? (entry as Gif).src : url
+        }))
+        .sort((a, b) => getFavoriteGifOrder(a) - getFavoriteGifOrder(b));
+}
+
+function getPickerMediaElementContainer(element: Element) {
+    return element.closest<HTMLElement>("[role='button'], [class*='result'], [class*='gif'], li, div") ?? element as HTMLElement;
+}
+
+function getDomGifForElement(element: Element): Gif | null {
+    const urls = getElementMediaUrls(element);
+    const src = urls[0];
+    if (!src) return null;
+
+    return {
+        media: urls,
+        src,
+        url: src
+    };
+}
+
+function shouldShowDomGif(gif: Gif) {
+    const { store } = runtime;
+    if (!store) return true;
+
+    const key = getGifKey(gif);
+    const knownKey = Object.keys(store.assignments).find(assignedKey =>
+        assignedKey === key || getGifImages(gif).includes(assignedKey)
+    );
+    const comparableGif = knownKey ? { ...gif, url: knownKey, src: knownKey } : gif;
+
+    return isGifInFolder(store, comparableGif, runtime.activeFolderId)
+        && (!runtime.query.trim() || getSearchTarget(comparableGif).includes(runtime.query.trim().toLowerCase()));
+}
+
+function applyDomFallbackFilter() {
+    const picker = document.querySelector("#gif-picker-tab-panel");
+    if (!picker) return;
+
+    const seen = new Set<HTMLElement>();
+    for (const mediaElement of picker.querySelectorAll<HTMLElement>("img, video, [style*='background-image']")) {
+        if (fallbackHost?.contains(mediaElement)) continue;
+
+        const container = getPickerMediaElementContainer(mediaElement);
+        if (seen.has(container)) continue;
+        seen.add(container);
+
+        const gif = getDomGifForElement(mediaElement);
+        if (!gif) continue;
+
+        container.style.display = shouldShowDomGif(gif) ? "" : "none";
+    }
+}
+
+function scheduleFallbackScan() {
+    if (fallbackScanTimeout !== null) return;
+
+    fallbackScanTimeout = window.setTimeout(() => {
+        fallbackScanTimeout = null;
+        mountDomFallback();
+        applyDomFallbackFilter();
+    }, 100);
+}
+
+function mountDomFallback() {
+    const picker = document.querySelector<HTMLElement>("#gif-picker-tab-panel");
+    if (!picker) {
+        unmountDomFallback();
+        return;
+    }
+
+    if (picker.querySelector(".vc-gif-folders-picker-header:not(.vc-gif-folders-dom-fallback)")) {
+        unmountDomFallback();
+        return;
+    }
+
+    if (fallbackHost && picker.contains(fallbackHost)) return;
+
+    unmountDomFallback();
+
+    fallbackHost = document.createElement("div");
+    fallbackHost.className = "vc-gif-folders-picker-header vc-gif-folders-dom-fallback";
+    picker.prepend(fallbackHost);
+
+    fallbackRoot = createRoot(fallbackHost);
+    fallbackRoot.render(
+        <ErrorBoundary noop>
+            <GifFoldersDomFallback />
+        </ErrorBoundary>
+    );
+}
+
+function unmountDomFallback() {
+    fallbackRoot?.unmount();
+    fallbackRoot = null;
+    fallbackHost?.remove();
+    fallbackHost = null;
+}
+
+function startDomFallback() {
+    stopDomFallback();
+
+    if (!document.body) {
+        document.addEventListener("DOMContentLoaded", startDomFallback, { once: true });
+        return;
+    }
+
+    scheduleFallbackScan();
+
+    fallbackObserver = new MutationObserver(scheduleFallbackScan);
+    fallbackObserver.observe(document.body, { childList: true, subtree: true });
+}
+
+function stopDomFallback() {
+    fallbackObserver?.disconnect();
+    fallbackObserver = null;
+
+    if (fallbackScanTimeout !== null) {
+        window.clearTimeout(fallbackScanTimeout);
+        fallbackScanTimeout = null;
+    }
+
+    unmountDomFallback();
 }
 
 function openManagerModal(favorites: Gif[], store: FolderStore, onStoreChange?: (store: FolderStore) => void) {
@@ -947,6 +1197,105 @@ function openManagerModal(favorites: Gif[], store: FolderStore, onStoreChange?: 
             />
         </ErrorBoundary>
     ));
+}
+
+function GifFoldersDomFallback() {
+    const text = getText();
+    const [store, setStore] = useState(runtime.store ?? emptyStore());
+    const [activeFolderId, setActiveFolderId] = useState(runtime.activeFolderId);
+    const [query, setQuery] = useState(runtime.query);
+    const [favorites, setFavorites] = useState<Gif[]>([]);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        async function load() {
+            await UserSettingsActionCreators.FrecencyUserSettingsActionCreators.loadIfNecessary?.();
+            const [nextStore] = await Promise.all([loadStore()]);
+            if (cancelled) return;
+
+            runtime.store = nextStore;
+            setStore(nextStore);
+            setFavorites(getCurrentFavoritesFromSettings());
+            window.setTimeout(applyDomFallbackFilter, 0);
+        }
+
+        load().catch(() => showToast(getText().loadError, "failure"));
+
+        const interval = window.setInterval(() => {
+            if (!cancelled) setFavorites(getCurrentFavoritesFromSettings());
+        }, 1500);
+
+        return () => {
+            cancelled = true;
+            window.clearInterval(interval);
+        };
+    }, []);
+
+    function selectFolder(folderId: string) {
+        runtime.activeFolderId = folderId;
+        setActiveFolderId(folderId);
+        scrollPickerToTop();
+        applyDomFallbackFilter();
+    }
+
+    function updateSearch(nextQuery: string) {
+        runtime.query = nextQuery;
+        setQuery(nextQuery);
+        scrollPickerToTop();
+        applyDomFallbackFilter();
+    }
+
+    return (
+        <>
+            <input
+                aria-label={text.favoriteSearchPlaceholder}
+                className="vc-gif-folders-fallback-search"
+                onChange={event => updateSearch(event.currentTarget.value)}
+                placeholder={text.favoriteSearchPlaceholder}
+                type="search"
+                value={query}
+            />
+
+            <div className="vc-gif-folders-toolbar">
+                <div className="vc-gif-folders-chip-row">
+                    <FolderChip
+                        active={activeFolderId === ALL_FOLDER_ID}
+                        count={favorites.length}
+                        label={text.all}
+                        onClick={() => selectFolder(ALL_FOLDER_ID)}
+                    />
+                    <FolderChip
+                        active={activeFolderId === UNSORTED_FOLDER_ID}
+                        count={folderCount(store, favorites, UNSORTED_FOLDER_ID)}
+                        label={text.unsorted}
+                        onClick={() => selectFolder(UNSORTED_FOLDER_ID)}
+                    />
+                    {store.folders.map(folder => (
+                        <FolderChip
+                            active={activeFolderId === folder.id}
+                            count={folderCount(store, favorites, folder.id)}
+                            key={folder.id}
+                            label={folder.name}
+                            onClick={() => selectFolder(folder.id)}
+                        />
+                    ))}
+                </div>
+
+                <Button
+                    onClick={() => openManagerModal(favorites, store, nextStore => {
+                        runtime.store = nextStore;
+                        setStore(nextStore);
+                        applyDomFallbackFilter();
+                    })}
+                    size="small"
+                    variant="secondary"
+                >
+                    {text.manageButton}
+                </Button>
+            </div>
+        </>
+    );
 }
 
 function GifFoldersHeader({ instance, SearchBarComponent }: { instance: Instance; SearchBarComponent: SearchBarComponent; }) {
@@ -1421,6 +1770,16 @@ function GifFolderManagerModal({
                             <Button onClick={handleImportStore} size="small" variant="secondary">
                                 {text.import}
                             </Button>
+                            <Button
+                                onClick={() => syncExportFiles().catch(error => {
+                                    console.error("[GifFolders] Failed to synchronize GIF exports", error);
+                                    showToast(getText().importInvalid, "failure");
+                                })}
+                                size="small"
+                                variant="secondary"
+                            >
+                                {text.syncExports}
+                            </Button>
                         </div>
                     </div>
                 </section>
@@ -1562,6 +1921,14 @@ export default definePlugin({
     description: getText().pluginDescription,
     authors: [{ name: "local", id: 0n }],
     tags: ["Media", "Utility", "Customisation"],
+
+    start() {
+        startDomFallback();
+    },
+
+    stop() {
+        stopDomFallback();
+    },
 
     patches: [
         {

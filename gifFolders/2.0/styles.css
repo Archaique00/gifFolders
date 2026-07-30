@@ -78,6 +78,26 @@
     padding-bottom: 2px;
 }
 
+.vc-gif-folders-dom-fallback {
+    padding: 8px 8px 6px;
+}
+
+.vc-gif-folders-fallback-search {
+    background: var(--input-background, var(--background-secondary));
+    border: 1px solid var(--input-border, var(--background-modifier-accent));
+    border-radius: 8px;
+    color: var(--text-normal, #dbdee1);
+    font: inherit;
+    min-height: 34px;
+    outline: none;
+    padding: 6px 10px;
+    width: 100%;
+}
+
+.vc-gif-folders-fallback-search:focus {
+    border-color: var(--brand-500, #5865f2);
+}
+
 .vc-gif-folders-toolbar {
     align-items: center;
     display: grid;
@@ -374,7 +394,7 @@
 .vc-gif-folders-backup-actions {
     display: grid;
     gap: 8px;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .vc-gif-folders-manager-gifs {

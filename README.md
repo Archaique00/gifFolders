@@ -2,14 +2,10 @@
 
 GifFolders is a Vencord / Equicord userplugin that adds local folders to Discord's native favorite GIF picker.
 
-This repository contains two local versions:
+This repository contains the current local version:
 
 ```txt
 gifFolders/
-├── 1.0/
-│   ├── README.md
-│   ├── index.tsx
-│   └── styles.css
 └── 2.0/
     ├── README.md
     ├── index.tsx
@@ -18,19 +14,9 @@ gifFolders/
 
 ## Versions
 
-### 1.0
-
-Stable version.
-
-Use:
-
-```txt
-gifFolders/1.0/
-```
-
 ### 2.0
 
-Newer version with the updated manager UI and automatic English/French language detection.
+Current version with the updated manager UI and automatic English/French language detection.
 
 Use:
 
@@ -46,7 +32,8 @@ gifFolders/2.0/
 - Search inside favorite GIFs.
 - Create, rename, and delete folders.
 - Export and import folders and all native favorite GIFs as JSON.
-- Resize the GIF manager window in version `2.0`.
+- Synchronize two GifFolders export files into one merged export.
+- Resize the GIF manager window.
 - Store data locally with Vencord `DataStore`.
 - English/French UI depending on Discord/browser language.
 
@@ -62,10 +49,7 @@ gifFolders/2.0/
 
 Vencord custom userplugins must be installed manually in a local Vencord source checkout.
 
-1. Pick a version:
-   - `gifFolders/1.0`
-   - `gifFolders/2.0`
-2. Copy that version's files into your Vencord source folder:
+Copy the version `2.0` files into your Vencord source folder:
 
 ```txt
 Vencord/src/userplugins/gifFolders/
@@ -123,9 +107,11 @@ Use `Export` in the GifFolders manager to save folders, assignments, and all
 native Discord favorite GIF entries as JSON.
 
 Use `Import` to restore them later. Missing favorite GIFs are added in one
-Discord settings update; favorites already present are kept unchanged. Older
-GifFolders version 1 exports remain supported, but they can only restore GIFs
-that had at least one folder assignment.
+Discord settings update; favorites already present are kept unchanged.
+
+Use `Sync exports` to select exactly two GifFolders JSON exports and download a
+new merged export. Folders with the same name are combined, GIF assignments are
+deduplicated, and favorite GIF entries from both files are preserved.
 
 The backup does not contain Discord tokens. It contains the metadata and URLs
 Discord needs to restore the native favorite GIF list; it does not embed or
