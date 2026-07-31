@@ -14,7 +14,7 @@ import { Paragraph } from "@components/Paragraph";
 import definePlugin from "@utils/types";
 import type { RenderModalProps } from "@vencord/discord-types";
 import { findByPropsLazy } from "@webpack";
-import { createRoot, Modal, openModal, showToast, TextInput, UserSettingsActionCreators, useEffect, useMemo, useState } from "@webpack/common";
+import { createRoot, Modal, openModal, showToast, TextInput, useEffect, useMemo, UserSettingsActionCreators, useState } from "@webpack/common";
 
 const STORE_KEY = "GifFolders_favoriteFolders_v2";
 const MANAGER_SIZE_STORE_KEY = "GifFolders_managerWindowSize";
@@ -124,10 +124,13 @@ const runtime = {
 };
 
 let storePromise: Promise<FolderStore> | null = null;
+let storeWritePromise: Promise<void> = Promise.resolve();
 let fallbackObserver: MutationObserver | null = null;
 let fallbackScanTimeout: number | null = null;
 let fallbackRoot: ReturnType<typeof createRoot> | null = null;
 let fallbackHost: HTMLElement | null = null;
+let nativeHeaderPatchActive = false;
+const fallbackDisplayValues = new Map<HTMLElement, string>();
 
 type SupportedLocale = "en" | "fr";
 
@@ -344,9 +347,16 @@ async function loadStore() {
 }
 
 async function saveStore(store: FolderStore) {
-    runtime.store = store;
-    storePromise = Promise.resolve(store);
-    await DataStore.set(STORE_KEY, store);
+    const normalizedStore = normalizeStore(store);
+    runtime.store = normalizedStore;
+    storePromise = Promise.resolve(normalizedStore);
+
+    // Several rapid clicks can otherwise finish their DataStore writes out of
+    // order and resurrect an older folder assignment.
+    storeWritePromise = storeWritePromise
+        .catch(() => undefined)
+        .then(() => DataStore.set(STORE_KEY, normalizedStore));
+    await storeWritePromise;
 }
 
 function isFolderFilterAvailable(store: FolderStore, folderId: string) {
@@ -568,7 +578,7 @@ function mergeImportedExports(first: GifFoldersImport, second: GifFoldersImport)
             return;
         }
 
-        let id = folder.id;
+        let { id } = folder;
         if (folders.some(existingFolder => existingFolder.id === id)) {
             id = createId();
         }
@@ -1044,8 +1054,8 @@ function scrollPickerToTop() {
 }
 
 function refreshPicker() {
-    const { instance } = runtime;
     applyDomFallbackFilter();
+    const { instance } = runtime;
     if (!instance || instance.dead) return;
 
     instance.props.favorites = filterFavorites(getOriginalFavorites(instance));
@@ -1062,53 +1072,54 @@ function getCurrentFavoritesFromSettings(): Gif[] {
         .sort((a, b) => getFavoriteGifOrder(a) - getFavoriteGifOrder(b));
 }
 
-function getPickerMediaElementContainer(element: Element) {
-    return element.closest<HTMLElement>("[role='button'], [class*='result'], [class*='gif'], li, div") ?? element as HTMLElement;
-}
+function findPickerInstanceFromDom(): Instance | null {
+    const picker = document.querySelector<HTMLElement>("#gif-picker-tab-panel");
+    if (!picker) return null;
 
-function getDomGifForElement(element: Element): Gif | null {
-    const urls = getElementMediaUrls(element);
-    const src = urls[0];
-    if (!src) return null;
+    const candidates = [picker, ...picker.children];
+    const visited = new Set<unknown>();
 
-    return {
-        media: urls,
-        src,
-        url: src
-    };
-}
+    for (const element of candidates) {
+        const fiberKey = Object.keys(element).find(key => key.startsWith("__reactFiber$"));
+        let fiber = fiberKey ? (element as any)[fiberKey] : null;
 
-function shouldShowDomGif(gif: Gif) {
-    const { store } = runtime;
-    if (!store) return true;
+        while (fiber && !visited.has(fiber)) {
+            visited.add(fiber);
+            const stateNode = fiber.stateNode as Instance | undefined;
 
-    const key = getGifKey(gif);
-    const knownKey = Object.keys(store.assignments).find(assignedKey =>
-        assignedKey === key || getGifImages(gif).includes(assignedKey)
-    );
-    const comparableGif = knownKey ? { ...gif, url: knownKey, src: knownKey } : gif;
+            if (
+                stateNode
+                && typeof stateNode.forceUpdate === "function"
+                && stateNode.props
+                && (Array.isArray(stateNode.props.favorites) || Array.isArray(stateNode.props.favCopy))
+            ) {
+                stateNode.props.favCopy ??= stateNode.props.favorites;
+                stateNode.dead = false;
+                return stateNode;
+            }
 
-    return isGifInFolder(store, comparableGif, runtime.activeFolderId)
-        && (!runtime.query.trim() || getSearchTarget(comparableGif).includes(runtime.query.trim().toLowerCase()));
+            fiber = fiber.return;
+        }
+    }
+
+    return null;
 }
 
 function applyDomFallbackFilter() {
-    const picker = document.querySelector("#gif-picker-tab-panel");
-    if (!picker) return;
+    const instance = findPickerInstanceFromDom();
+    if (instance) runtime.instance = instance;
 
-    const seen = new Set<HTMLElement>();
-    for (const mediaElement of picker.querySelectorAll<HTMLElement>("img, video, [style*='background-image']")) {
-        if (fallbackHost?.contains(mediaElement)) continue;
+    // Never hide Discord nodes directly. React recycles GIF/category elements,
+    // so an inline display:none can leak into another folder or category and
+    // blank the entire grid. Filtering is applied through the native instance.
+    restoreDomFallbackFilter();
+}
 
-        const container = getPickerMediaElementContainer(mediaElement);
-        if (seen.has(container)) continue;
-        seen.add(container);
-
-        const gif = getDomGifForElement(mediaElement);
-        if (!gif) continue;
-
-        container.style.display = shouldShowDomGif(gif) ? "" : "none";
+function restoreDomFallbackFilter() {
+    for (const [container, display] of fallbackDisplayValues) {
+        container.style.display = display;
     }
+    fallbackDisplayValues.clear();
 }
 
 function scheduleFallbackScan() {
@@ -1125,6 +1136,21 @@ function mountDomFallback() {
     const picker = document.querySelector<HTMLElement>("#gif-picker-tab-panel");
     if (!picker) {
         unmountDomFallback();
+        return;
+    }
+
+    const pickerText = picker.textContent?.toLocaleLowerCase() ?? "";
+    const isFavoritesView = /(^|\s)(favorites|favoris)(\s|$)/i.test(pickerText);
+
+    // Once the native header patch has executed, the fallback must stay
+    // disabled. If that patch is unavailable for a Discord module variant,
+    // only mount the fallback on the actual Favorites view.
+    // Other GIF categories intentionally do not render the favorites header;
+    // treating that as a patch failure would mount the fallback over Trending
+    // or search results and hide their items with the active folder filter.
+    if (nativeHeaderPatchActive || !isFavoritesView) {
+        unmountDomFallback();
+        restoreDomFallbackFilter();
         return;
     }
 
@@ -1180,6 +1206,7 @@ function stopDomFallback() {
     }
 
     unmountDomFallback();
+    restoreDomFallbackFilter();
 }
 
 function openManagerModal(favorites: Gif[], store: FolderStore, onStoreChange?: (store: FolderStore) => void) {
@@ -1216,7 +1243,7 @@ function GifFoldersDomFallback() {
             runtime.store = nextStore;
             setStore(nextStore);
             setFavorites(getCurrentFavoritesFromSettings());
-            window.setTimeout(applyDomFallbackFilter, 0);
+            window.setTimeout(refreshPicker, 0);
         }
 
         load().catch(() => showToast(getText().loadError, "failure"));
@@ -1235,7 +1262,7 @@ function GifFoldersDomFallback() {
         runtime.activeFolderId = folderId;
         setActiveFolderId(folderId);
         scrollPickerToTop();
-        applyDomFallbackFilter();
+        refreshPicker();
     }
 
     return (
@@ -1268,7 +1295,7 @@ function GifFoldersDomFallback() {
                 onClick={() => openManagerModal(favorites, store, nextStore => {
                     runtime.store = nextStore;
                     setStore(nextStore);
-                    applyDomFallbackFilter();
+                    refreshPicker();
                 })}
                 size="small"
                 variant="secondary"
@@ -1290,6 +1317,7 @@ function GifFoldersHeader({ instance, SearchBarComponent }: { instance: Instance
     useEffect(() => {
         let cancelled = false;
 
+        instance.dead = false;
         runtime.instance = instance;
         loadStore().then(nextStore => {
             if (cancelled) return;
@@ -1302,6 +1330,7 @@ function GifFoldersHeader({ instance, SearchBarComponent }: { instance: Instance
         return () => {
             cancelled = true;
             instance.dead = true;
+            if (runtime.instance === instance) runtime.instance = null;
         };
     }, [instance]);
 
@@ -1909,6 +1938,10 @@ export default definePlugin({
 
     stop() {
         stopDomFallback();
+        nativeHeaderPatchActive = false;
+        runtime.instance = null;
+        runtime.activeFolderId = ALL_FOLDER_ID;
+        runtime.query = "";
     },
 
     patches: [
@@ -1928,6 +1961,7 @@ export default definePlugin({
     ],
 
     renderFavoritesHeader(instance: Instance, SearchBarComponent: SearchBarComponent) {
+        nativeHeaderPatchActive = true;
         runtime.instance = instance;
 
         return (
