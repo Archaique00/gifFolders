@@ -610,3 +610,28 @@
         grid-template-columns: 1fr;
     }
 }
+.expressionPickerPositionLayer__74017 :where(
+    [class^="positionContainer__"],
+    [class*=" positionContainer__"]
+) {
+    width: min(580px, calc(100vw - 32px)) !important;
+    max-width: calc(100vw - 32px) !important;
+}
+
+.expressionPickerPositionLayer__74017 :where(
+    [class^="drawerSizingWrapper__"],
+    [class*=" drawerSizingWrapper__"]
+) {
+    width: 100% !important;
+    max-width: none !important;
+}
+
+.expressionPickerPositionLayer__74017 :where(
+    [class^="contentWrapper__"],
+    [class*=" contentWrapper__"]
+) {
+    width: 100% !important;
+    height: min(900px, calc(100vh - 64px)) !important;
+    max-width: none !important;
+    max-height: calc(100vh - 64px) !important;
+}
