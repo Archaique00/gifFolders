@@ -9,7 +9,14 @@ if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
     throw "Node.js 18+ est requis."
 }
 
-if (-not $env:DISCORD_TOKEN) {
+$NeedsToken = $true
+foreach ($Arg in $args) {
+    if ($Arg -in @("--help", "-h", "--dry-run", "--token")) {
+        $NeedsToken = $false
+    }
+}
+
+if ($NeedsToken -and -not $env:DISCORD_TOKEN) {
     $SecureToken = Read-Host "Discord token" -AsSecureString
     $Bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($SecureToken)
     try {

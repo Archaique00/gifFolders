@@ -9,7 +9,16 @@ if ! command -v node >/dev/null 2>&1; then
     exit 1
 fi
 
-if [[ -z "${DISCORD_TOKEN:-}" ]]; then
+NEEDS_TOKEN=1
+for arg in "$@"; do
+    case "$arg" in
+        --help|-h|--dry-run|--token)
+            NEEDS_TOKEN=0
+            ;;
+    esac
+done
+
+if [[ "$NEEDS_TOKEN" -eq 1 && -z "${DISCORD_TOKEN:-}" ]]; then
     read -r -s -p "Discord token: " DISCORD_TOKEN
     echo
     export DISCORD_TOKEN

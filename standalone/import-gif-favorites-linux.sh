@@ -1,3 +1,27 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if ! command -v node >/dev/null 2>&1; then
+    echo "Erreur: Node.js 18+ est requis. Aucun paquet npm n'est necessaire." >&2
+    exit 1
+fi
+
+NEEDS_TOKEN=1
+for arg in "$@"; do
+    case "$arg" in
+        --help|-h|--dry-run|--token)
+            NEEDS_TOKEN=0
+            ;;
+    esac
+done
+
+if [[ "$NEEDS_TOKEN" -eq 1 && -z "${DISCORD_TOKEN:-}" ]]; then
+    read -r -s -p "Discord token: " DISCORD_TOKEN
+    echo
+    export DISCORD_TOKEN
+fi
+
+node --input-type=module - "$@" <<'GIF_FOLDERS_IMPORT_NODE'
 #!/usr/bin/env node
 
 import fs from "node:fs/promises";
@@ -610,3 +634,5 @@ main().catch(error => {
     console.error(`Error: ${error.message}`);
     process.exitCode = 1;
 });
+
+GIF_FOLDERS_IMPORT_NODE

@@ -123,8 +123,26 @@ The `scripts/` folder contains a standalone importer that adds every GIF from a
 GifFolders JSON export to the Discord account favorite GIF list, without opening
 the plugin manager and without clicking each GIF manually.
 
-It requires Node.js 18+ and a Discord user token supplied by you. The script does
-not extract a token from Discord, browsers, or local files.
+It requires Node.js 18+ and a Discord user token supplied by you. It does not
+need npm packages and does not extract a token from Discord, browsers, or local
+files.
+
+Portable one-file scripts are available in `standalone/`. You can copy only the
+Linux or Windows file you need; cloning this repository is not required.
+
+Portable Linux:
+
+```sh
+./import-gif-favorites-linux.sh /path/to/gif-folders-export.json
+```
+
+Portable Windows PowerShell:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\import-gif-favorites-windows.ps1 C:\path\to\gif-folders-export.json
+```
+
+Repository launchers:
 
 Linux:
 

@@ -1,3 +1,29 @@
+$ErrorActionPreference = "Stop"
+
+if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
+    throw "Node.js 18+ est requis. Aucun paquet npm n'est necessaire."
+}
+
+$NeedsToken = $true
+foreach ($Arg in $args) {
+    if ($Arg -in @("--help", "-h", "--dry-run", "--token")) {
+        $NeedsToken = $false
+    }
+}
+
+$TokenWasPrompted = $false
+if ($NeedsToken -and -not $env:DISCORD_TOKEN) {
+    $SecureToken = Read-Host "Discord token" -AsSecureString
+    $Bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($SecureToken)
+    try {
+        $env:DISCORD_TOKEN = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($Bstr)
+        $TokenWasPrompted = $true
+    } finally {
+        [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($Bstr)
+    }
+}
+
+$Source = @'
 #!/usr/bin/env node
 
 import fs from "node:fs/promises";
@@ -610,3 +636,16 @@ main().catch(error => {
     console.error(`Error: ${error.message}`);
     process.exitCode = 1;
 });
+
+'@
+$TempPath = Join-Path ([IO.Path]::GetTempPath()) ("gif-favorites-import-" + [Guid]::NewGuid().ToString("N") + ".mjs")
+
+try {
+    [IO.File]::WriteAllText($TempPath, $Source, [Text.UTF8Encoding]::new($false))
+    node $TempPath @args
+} finally {
+    Remove-Item $TempPath -ErrorAction SilentlyContinue
+    if ($TokenWasPrompted) {
+        Remove-Item Env:\DISCORD_TOKEN -ErrorAction SilentlyContinue
+    }
+}
