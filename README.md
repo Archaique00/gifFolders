@@ -116,3 +116,35 @@ deduplicated, and favorite GIF entries from both files are preserved.
 The backup does not contain Discord tokens. It contains the metadata and URLs
 Discord needs to restore the native favorite GIF list; it does not embed or
 download the GIF media files themselves.
+
+## Terminal Import Without The Plugin UI
+
+The `scripts/` folder contains a standalone importer that adds every GIF from a
+GifFolders JSON export to the Discord account favorite GIF list, without opening
+the plugin manager and without clicking each GIF manually.
+
+It requires Node.js 18+ and a Discord user token supplied by you. The script does
+not extract a token from Discord, browsers, or local files.
+
+Linux:
+
+```sh
+./scripts/import-gif-favorites-linux.sh /path/to/gif-folders-export.json
+```
+
+Windows PowerShell:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\import-gif-favorites-windows.ps1 C:\path\to\gif-folders-export.json
+```
+
+Useful options:
+
+```txt
+--dry-run   Validate the JSON and compare with the account without importing.
+--yes       Skip the interactive IMPORT confirmation.
+--replace   Replace the current favorite GIF list instead of merging.
+```
+
+By default, the importer merges: existing favorite GIFs stay untouched, and only
+missing GIFs from the JSON are added.
